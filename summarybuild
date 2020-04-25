@@ -1,0 +1,53 @@
+This file is to elaborate building the baremetal like nodes within you virtual environment: 
+
+1- Ubuntu VM (This was done on both 16.4, 18.04). 
+2- install kind 
+apt update && apt upgrade -y
+apt install docker.io -y
+apt install -y apt-transport-https
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+apt update -y
+apt install -y kubeadm kubelet kubectl
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.7.0/kind-$(uname)-amd64
+chmod +x ./kind  
+mv ./kind /some-dir-in-your-PATH/kind
+mv ./kind /usr/bin/kind
+
+3- create simple yaml file to build the infrastructure for example "kindcluster.yaml"
+
+then use, kind create cluster --config kindcluster.yaml
+
+after nodes are built the output of "kubectl get nodes" should be like that: 
+NAME                 STATUS   ROLES    AGE    VERSION
+kind-control-plane   Ready    master   156m   v1.17.0
+kind-worker          Ready    <none>   156m   v1.17.0
+kind-worker2         Ready    <none>   156m   v1.17.0
+kind-worker3         Ready    <none>   156m   v1.17.0
+kind-worker4         Ready    <none>   156m   v1.17.0
+
+After nodes are in ready state, you can now build the deployment with pods and services: 
+
+Note: I added the port mapping, incase accessing from outside is required, so you can add the port-forward command and use the mentioned
+node ports to access the service from external machines. 
+
+[In production]
+You can update the base yaml file for building the cluster and include the commands required to integrate search headers, forwarders,
+Licensing manager and indexers, so you can have the full deployment without further manual actions. 
+
+kubectl create -f splunkenterprise_dep.yaml
+output: 
+kubectl get deployment
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+splunkenterprise   4/4     4            4           28m
+
+kubectl get svc
+NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                       AGE
+kubernetes            ClusterIP   10.96.0.1       <none>        443/TCP                                                       113m
+splunkenterprisesvc   NodePort    10.96.153.110   <none>        8000:30800/TCP,8089:30089/TCP,9997:30997/TCP,8008:30008/TCP   27m
+
+kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+splunkenterprise-586c8d78f5-g47hr   1/1     Running   0          27m
+splunkenterprise-586c8d78f5-sc97n   1/1     Running   0          27m
+splunkenterprise-586c8d78f5-v5p9k   1/1     Running   0          27m
+splunkenterprise-586c8d78f5-xb8n8   1/1     Running   0          27m
